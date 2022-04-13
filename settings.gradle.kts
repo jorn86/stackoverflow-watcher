@@ -1,4 +1,4 @@
-rootProject.name = "my-project"
+rootProject.name = "stackoverflow-watcher"
 
 include("app")
-include("core")
+include("compose-library")
