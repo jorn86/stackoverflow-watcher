@@ -1,4 +1,4 @@
-package org.hertsig.stackoverflow.dto
+package org.hertsig.stackoverflow.dto.api
 
 import kotlinx.serialization.Serializable
 import org.hertsig.stackoverflow.questionUrl
@@ -17,6 +17,8 @@ data class Question(
     val creationDate: Long,
     val viewCount: Int,
     val tags: List<String>,
+    val answers: List<Answer> = emptyList(),
+    val commentCount: Int = 0,
 ) {
     val url get() = questionUrl(questionId.toString())
     val parsedDate get(): Instant = Instant.ofEpochSecond(creationDate)

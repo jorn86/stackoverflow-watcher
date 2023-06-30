@@ -1,4 +1,4 @@
-package org.hertsig.stackoverflow.dto
+package org.hertsig.stackoverflow.dto.api
 
 import kotlinx.serialization.Serializable
 

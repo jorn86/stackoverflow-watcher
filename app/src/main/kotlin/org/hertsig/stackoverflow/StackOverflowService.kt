@@ -18,9 +18,14 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNamingStrategy
-import org.apache.commons.text.StringEscapeUtils
 import org.hertsig.core.logger
 import org.hertsig.stackoverflow.dto.*
+import org.hertsig.stackoverflow.dto.api.ApiError
+import org.hertsig.stackoverflow.dto.api.ApiResponse
+import org.hertsig.stackoverflow.dto.api.Filter
+import org.hertsig.stackoverflow.dto.api.Question
+import org.hertsig.stackoverflow.dto.websocket.NewQuestionMessage
+import org.hertsig.stackoverflow.dto.websocket.WebsocketMessage
 import java.time.Instant
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.time.Duration
@@ -31,7 +36,7 @@ import kotlin.time.toJavaDuration
 
 private val log = logger {}
 
-typealias NewQuestionListener = (Question) -> Unit
+private const val FILTER_NAME = "5147LfK)H"
 
 class StackOverflowService(
     private val questionLimit: Int = 30,
@@ -114,12 +119,13 @@ class StackOverflowService(
     suspend fun preloadWatchedQuestions(tags: Set<String> = watchedTags, window: Duration = 2.hours) {
         val questions = tags.flatMap {
             val response = apiCall("questions") {
+                parameter("filter", FILTER_NAME)
                 parameter("tagged", it)
                 parameter("sort", "creation")
                 parameter("min", Instant.now().minus(window.toJavaDuration()).epochSecond)
                 parameter("pagesize", questionLimit)
             }
-            parseQuestionsResponse(response).filter { it.tags.noneIgnored() }
+            parseResponse<Question>(response).filter { it.tags.noneIgnored() }
         }.distinctBy { it.questionId }
             .sortedByDescending { it.creationDate }
             .take(questionLimit)
@@ -207,13 +213,30 @@ class StackOverflowService(
     private suspend fun getQuestions(ids: Set<Long>): List<Question> {
         if (ids.isEmpty()) return emptyList()
         val query = ids.joinToString(";")
-        val response = apiCall("questions/$query") { parameter("sort", "creation") }
-        return parseQuestionsResponse(response)
+        val response = apiCall("questions/$query") {
+            parameter("filter", FILTER_NAME)
+            parameter("sort", "creation")
+        }
+        return parseResponse<Question>(response)
+    }
+
+    suspend fun getFilter() {
+        val response = apiCall("filters/$FILTER_NAME", null)
+        println( parseResponse<Filter>(response))
+    }
+
+    suspend fun createFilter() {
+        val response = apiCall("filters/create", null) {
+            parameter("unsafe", "true")
+            parameter("include", "question.answers.answer_id;question.answers.is_accepted;question.comment_count")
+        }
+        println(response.status)
+        println(response.bodyAsText())
     }
 
     private suspend fun apiCall(
         path: String,
-        site: String = "stackoverflow",
+        site: String? = "stackoverflow",
         builder: HttpRequestBuilder.() -> Unit = {},
     ) = client.request("https://api.stackexchange.com/2.3/$path") {
         parameter("key", apiKey)
@@ -221,7 +244,7 @@ class StackOverflowService(
         builder()
     }
 
-    private suspend fun StackOverflowService.parseQuestionsResponse(response: HttpResponse): List<Question> {
+    private suspend inline fun <reified T> StackOverflowService.parseResponse(response: HttpResponse): List<T> {
         val text = response.bodyAsText()
         if (response.status != HttpStatusCode.OK) {
             log.error("Request to ${response.request.url} failed with status code ${response.status}, body was $text")
@@ -238,16 +261,14 @@ class StackOverflowService(
         }
 
         log.debug("Decoding API response: $text")
-        val responseData = json.decodeFromString<ApiResponse<Question>>(text)
-        if (responseData.quotaRemaining < responseData.quotaMax / 10) {
+        val responseData = json.decodeFromString<ApiResponse<T>>(text)
+        if (responseData.quotaRemaining < responseData.quotaMax / 100) {
             log.warn("Quota remaining low: ${responseData.quotaRemaining}/${responseData.quotaMax}")
         } else {
             log.debug("Quota remaining: ${responseData.quotaRemaining}/${responseData.quotaMax}")
         }
         handleBackoff(responseData.backoff)
-        return responseData.items.map {
-            it.copy(title = StringEscapeUtils.unescapeHtml4(it.title))
-        }
+        return responseData.items
     }
 
     private suspend fun handleBackoff(backoff: Int?) {
@@ -267,4 +288,8 @@ internal fun Iterable<String>.noneIgnored(ignoredTags: Collection<String>) = non
 private fun MutableIterator<*>.removeNext() {
     next()
     remove()
+}
+
+suspend fun main() {
+    StackOverflowService().createFilter()
 }

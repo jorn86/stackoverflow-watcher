@@ -5,13 +5,14 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import org.hertsig.core.logger
-import org.hertsig.stackoverflow.dto.Question
+import org.hertsig.stackoverflow.dto.api.Question
 
 private val log = logger {}
 
 class QuestionController(
     private val service: StackOverflowService,
-    vararg initialIgnoredTags: String = arrayOf("javafx", "python", "javascript", "minecraft", "pdf", "react", "selenium"),
+    vararg initialIgnoredTags: String =
+        arrayOf("javafx", "python", "javascript", "minecraft", "pdf", "react", "selenium", "swing"),
 ) {
     val ignoredTags = mutableStateListOf(*initialIgnoredTags)
     val showIgnoredState = mutableStateOf(true)

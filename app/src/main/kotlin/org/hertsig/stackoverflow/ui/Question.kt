@@ -22,7 +22,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import org.hertsig.compose.component.TextLine
-import org.hertsig.stackoverflow.dto.Question
+import org.hertsig.stackoverflow.dto.api.Question
 import java.awt.Desktop
 import java.net.URI
 import java.time.ZoneId
@@ -60,6 +60,7 @@ fun Question(question: Question, modifier: Modifier = Modifier) {
                 Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(4.dp), Alignment.CenterVertically) {
                     if (question.acceptedAnswerId != null) Icon(Icons.Default.Check, "Accepted")
                     if (question.answerCount > 0) Text("${question.answerCount} answer(s)")
+                    if (question.commentCount > 0) Text("${question.commentCount} comment(s)")
                     question.tags.forEach { Tag(it) }
                     Spacer(Modifier.weight(1f))
                     val localDate = question.parsedDate.atZone(ZoneOffset.UTC).withZoneSameInstant(ZoneId.systemDefault())
