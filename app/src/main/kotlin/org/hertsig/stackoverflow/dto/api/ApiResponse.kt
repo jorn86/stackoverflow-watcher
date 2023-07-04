@@ -7,5 +7,6 @@ data class ApiResponse<T>(
     val items: List<T> = emptyList(),
     val quotaMax: Int,
     val quotaRemaining: Int,
+    val hasMore: Boolean,
     val backoff: Int? = null,
 )

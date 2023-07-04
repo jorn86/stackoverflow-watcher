@@ -1,3 +1,4 @@
+import org.jetbrains.compose.ExperimentalComposeLibrary
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
 plugins {
@@ -13,6 +14,10 @@ dependencies {
     implementation("io.ktor:ktor-client-websockets:2.3.0")
     implementation("io.ktor:ktor-client-encoding:2.3.0")
     runtimeOnly("io.ktor:ktor-client-java:2.3.0")
+
+    @OptIn(ExperimentalComposeLibrary::class)
+    testImplementation(compose.uiTestJUnit4)
+    testImplementation(kotlin("test"))
 }
 
 compose.desktop {
@@ -24,4 +29,8 @@ compose.desktop {
             packageVersion = "1.0.0"
         }
     }
+}
+
+tasks.test {
+    useJUnit()
 }

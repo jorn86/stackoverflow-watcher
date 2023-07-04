@@ -2,7 +2,6 @@ package org.hertsig.stackoverflow.dto.api
 
 import kotlinx.serialization.Serializable
 import org.hertsig.stackoverflow.questionUrl
-import java.time.Instant
 
 @Serializable
 data class Question(
@@ -14,6 +13,7 @@ data class Question(
     val bountyAmount: Int? = null,
     val bountyClosesDate: Long? = null,
     val closedReason: String? = null,
+    val closedDate: Long? = null,
     val creationDate: Long,
     val viewCount: Int,
     val tags: List<String>,
@@ -21,6 +21,4 @@ data class Question(
     val commentCount: Int = 0,
 ) {
     val url get() = questionUrl(questionId.toString())
-    val parsedDate get(): Instant = Instant.ofEpochSecond(creationDate)
-    val parsedBountyClosesDate get() = bountyClosesDate?.let(Instant::ofEpochSecond)
 }

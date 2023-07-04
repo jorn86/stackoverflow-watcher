@@ -19,7 +19,7 @@ private val initialTags = arrayOf("java", "kotlin", "jooq", "guava", "guice", "j
 fun main() = runBlocking {
     registerExceptionHandler()
 
-    val service = StackOverflowService()
+    val service = StackOverflowService(StackExchangeApiService(), StackExchangeWebsocketService())
     service.preloadWatchedQuestions(initialTags.toSet())
     launch { service.startWebsocket(*initialTags) }
     launch { service.startQuestionPoller() }

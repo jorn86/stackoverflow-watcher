@@ -1,18 +1,17 @@
 package org.hertsig.stackoverflow
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import org.hertsig.core.logger
 import org.hertsig.stackoverflow.dto.api.Question
+import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.EmptyCoroutineContext
 
 private val log = logger {}
 
 class QuestionController(
     private val service: StackOverflowService,
     vararg initialIgnoredTags: String =
-        arrayOf("javafx", "python", "javascript", "minecraft", "pdf", "react", "selenium", "swing"),
+        arrayOf("hibernate", "javafx", "javascript", "jpa", "minecraft", "pdf", "python", "react", "selenium", "swing"),
 ) {
     val ignoredTags = mutableStateListOf(*initialIgnoredTags)
     val showIgnoredState = mutableStateOf(true)
@@ -40,4 +39,18 @@ class QuestionController(
             }
         }
     }
+
+    suspend fun pollBounties() = service.pollBounties()
+
+    @Composable
+    fun collectQuestionsAsState(context: CoroutineContext = EmptyCoroutineContext): State<List<Question>> =
+        service.questionFlow.collectAsState(context)
+
+    @Composable
+    fun collectBountiesAsState(context: CoroutineContext = EmptyCoroutineContext): State<List<Question>> =
+        service.bountyFlow.collectAsState(context)
+}
+
+private fun Iterable<String>.noneIgnored(ignoredTags: Collection<String>) = none { tag ->
+    ignoredTags.any { ignored -> tag.startsWith(ignored) }
 }
