@@ -20,7 +20,6 @@ fun QuestionList(
     scrollState: LazyListState = rememberLazyListState(),
 ) {
     ScrollableColumn(state = scrollState, arrangement = Arrangement.spacedBy(8.dp)) {
-        println(questions)
         items(questions, { it.questionId }) {
             Question(it, Modifier.alpha(if (controller.fade(it)) .6f else 1f))
         }

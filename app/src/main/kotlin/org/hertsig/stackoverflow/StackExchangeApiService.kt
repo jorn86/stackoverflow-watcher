@@ -44,7 +44,7 @@ class StackExchangeApiService(
             parameter("min", Instant.now().minus(window.toJavaDuration()).epochSecond)
             parameter("pagesize", limit)
         }
-        val (questions, _) = parseResponse<Question>(response)
+        val (questions) = parseResponse<Question>(response)
         return questions
     }
 
@@ -56,7 +56,7 @@ class StackExchangeApiService(
             parameter("filter", FILTER_NAME)
             parameter("sort", "creation")
         }
-        val (questions, _) = parseResponse<Question>(response)
+        val (questions) = parseResponse<Question>(response)
         return questions
     }
 
@@ -83,17 +83,17 @@ class StackExchangeApiService(
     suspend fun getFilter(): Filter {
         Instant.now()
         val response = apiCall("filters/$FILTER_NAME", null)
-        val (filters, _) = parseResponse<Filter>(response)
+        val (filters) = parseResponse<Filter>(response)
         return filters.single()
     }
 
-    suspend fun createFilter(unsafe: Boolean = false, vararg include: String) {
+    suspend fun createFilter(unsafe: Boolean = false, vararg include: String): Filter {
         val response = apiCall("filters/create", null) {
             parameter("unsafe", unsafe)
             parameter("include", include.joinToString(";"))
         }
-        println(response.status)
-        println(response.bodyAsText())
+        val (filter) = parseResponse<Filter>(response)
+        return filter.single()
     }
 
     private suspend fun apiCall(

@@ -1,6 +1,5 @@
 package org.hertsig.stackoverflow.ui
 
-import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -19,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -34,17 +34,22 @@ import java.time.format.DateTimeFormatter
 
 private val desktop = if (Desktop.isDesktopSupported()) Desktop.getDesktop() else null
 
-@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun Question(question: Question, modifier: Modifier = Modifier) {
     SpacedRow(modifier.clickable { desktop?.browse(URI(question.url)) },
         16.dp, vertical = Alignment.CenterVertically
     ) {
         Row(
-            Modifier.background(MaterialTheme.colors.secondary, RoundedCornerShape(16.dp)).size(40.dp),
+            Modifier.background(MaterialTheme.colors.primary, RoundedCornerShape(16.dp)).size(40.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            TextLine(question.score.toString(), Modifier.fillMaxWidth(), align = TextAlign.Center)
+            TextLine(
+                question.score.toString(),
+                Modifier.fillMaxWidth(),
+                MaterialTheme.colors.onPrimary,
+                style = LocalTextStyle.current.copy(fontWeight = FontWeight.Bold),
+                align = TextAlign.Center
+            )
         }
         SpacedColumn {
             SpacedRow {
@@ -91,9 +96,9 @@ fun Question(question: Question, modifier: Modifier = Modifier) {
 @Composable
 private fun Tag(tag: String, modifier: Modifier = Modifier) {
     Text(tag,
-        modifier.background(MaterialTheme.colors.secondary, RoundedCornerShape(4.dp)).padding(4.dp),
+        modifier.background(MaterialTheme.colors.primaryVariant, RoundedCornerShape(4.dp)).padding(4.dp),
         textAlign = TextAlign.End,
-        style = LocalTextStyle.current.copy(color = MaterialTheme.colors.onSecondary)
+        style = LocalTextStyle.current.copy(color = MaterialTheme.colors.onPrimary)
     )
 }
 
