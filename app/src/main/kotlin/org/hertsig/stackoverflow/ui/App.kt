@@ -12,6 +12,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.unit.dp
+import org.hertsig.compose.component.TabBuilder
+import org.hertsig.compose.component.TabView
 import org.hertsig.compose.component.TextLine
 import org.hertsig.compose.component.Theme
 import org.hertsig.stackoverflow.APP_NAME
@@ -73,18 +75,10 @@ fun App(service: StackOverflowService) {
                 Switch(dark, { dark = it })
             }
 
-            var tabIndex by remember { mutableStateOf(0) }
-            CompositionLocalProvider(LocalTextStyle provides LocalTextStyle.current.copy(color = MaterialTheme.colors.contentColorFor(MaterialTheme.colors.primarySurface))) {
-                TabRow(tabIndex, Modifier.height(32.dp)) {
-                    Tab(tabIndex == 0, { tabIndex = 0 }) { TextLine("Recent") }
-                    Tab(tabIndex == 1, { tabIndex = 1 }) { TextLine("Bounty") }
-                }
-            }
-
-            when (tabIndex) {
-                0 -> RecentQuestionsView(controller)
-                1 -> BountyQuestionsView(controller)
-            }
+            TabView(views = arrayOf(
+                TabBuilder("Recent") { RecentQuestionsView(controller) },
+                TabBuilder("Bounty") { BountyQuestionsView(controller) },
+            ))
         }
     }
 }
