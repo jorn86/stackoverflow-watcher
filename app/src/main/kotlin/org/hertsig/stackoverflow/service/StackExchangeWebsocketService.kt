@@ -1,20 +1,25 @@
-package org.hertsig.stackoverflow
+package org.hertsig.stackoverflow.service
 
 import io.ktor.client.*
 import io.ktor.client.plugins.websocket.*
 import io.ktor.websocket.*
-import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
+import org.hertsig.core.debug
+import org.hertsig.core.error
+import org.hertsig.core.info
 import org.hertsig.core.logger
 import org.hertsig.stackoverflow.dto.websocket.NewQuestionMessage
 import org.hertsig.stackoverflow.dto.websocket.WebsocketMessage
+import org.hertsig.stackoverflow.util.backgroundTask
+import kotlin.time.Duration.Companion.seconds
 
 private val log = logger {}
 
-typealias NewQuestionListener = (NewQuestionMessage) -> Unit
+typealias NewQuestionListener = suspend (NewQuestionMessage) -> Unit
 
 class StackExchangeWebsocketService(
     private val json: Json = defaultJson,
@@ -29,24 +34,23 @@ class StackExchangeWebsocketService(
 
     fun hasActiveWebsocket() = activeWebsocket != null
 
-    suspend fun connect() = coroutineScope {
+    suspend fun connect() {
         require(activeWebsocket == null) { "Websocket session already active: $activeWebsocket" }
-        activeWebsocket = client.webSocketSession(urlString = "wss://qa.sockets.stackexchange.com/")
-        launch {
-            try {
-                while (true) {
-                    activeWebsocket!!.receiveNextFrame()
-                }
-            } finally {
-                log.warn("Receive loop has exited, closing websocket connection")
-                activeWebsocket?.close(CloseReason(CloseReason.Codes.GOING_AWAY, "bye"))
-                activeWebsocket = null
-            }
+        val socket = client.webSocketSession(urlString = "wss://qa.sockets.stackexchange.com/")
+        activeWebsocket = socket
+        log.info("Websocket connected")
+        socket.launch {
+            backgroundTask("Websocket", 0.seconds) { socket.receiveNextFrame() }
+            log.warn("Receive loop has exited, closing websocket connection")
+            socket.close(CloseReason(CloseReason.Codes.GOING_AWAY, "bye"))
+            socket.cancel()
+            activeWebsocket = null
         }
     }
 
     private suspend fun WebSocketSession.receiveNextFrame() {
         val frame = incoming.receive()
+        log.debug{"Received frame $frame"}
         if (frame !is Frame.Text) {
             log.warn("Skipping unexpected frame $frame")
             return
@@ -62,24 +66,26 @@ class StackExchangeWebsocketService(
             }
 
             val message = json.decodeFromString<NewQuestionMessage>(container.data)
+            log.info { "Received new question: $message" }
             listeners.forEach { it(message) }
         } catch (e: SerializationException) {
-            log.error("Error parsing frame: $text", e)
+            log.error(e) {"Error parsing frame: $text"}
         } catch (e: Exception) {
-            log.error("Unexpected exception", e)
+            log.error(e) {"Unexpected exception for frame $text"}
         }
     }
 
-    suspend fun addWatchedTag(tag: String) {
+    fun addWatchedTag(tag: String) {
         withWebsocket {
             send(Frame.Text("1-questions-newest-tag-$tag"))
+            log.info { "Subscribed to tag $tag" }
         }
     }
 
-    private suspend fun <T> withWebsocket(action: suspend WebSocketSession.() -> T): T {
-        return with(activeWebsocket) {
+    private fun withWebsocket(action: suspend WebSocketSession.() -> Unit) {
+        with(activeWebsocket) {
             require(this != null) { "No active websocket" }
-            action()
+            launch { action() }
         }
     }
 }

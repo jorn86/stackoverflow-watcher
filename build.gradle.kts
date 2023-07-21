@@ -1,7 +1,7 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    id("org.jetbrains.compose") version "1.4.0" apply false
+    id("org.jetbrains.compose") version "1.4.1" apply false
     kotlin("jvm") version "1.8.10" apply false
     kotlin("plugin.serialization") version "1.8.10" apply false
 }

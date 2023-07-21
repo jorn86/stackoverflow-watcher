@@ -1,7 +1,7 @@
 package org.hertsig.stackoverflow.dto.api
 
 import kotlinx.serialization.Serializable
-import org.hertsig.stackoverflow.questionUrl
+import org.hertsig.stackoverflow.controller.questionUrl
 
 @Serializable
 data class Question(

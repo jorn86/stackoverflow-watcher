@@ -1,4 +1,4 @@
-package org.hertsig.stackoverflow
+package org.hertsig.stackoverflow.service
 
 import io.ktor.client.*
 import io.ktor.client.plugins.compression.*
@@ -10,7 +10,7 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNamingStrategy
-import org.hertsig.core.logger
+import org.hertsig.core.*
 import org.hertsig.stackoverflow.dto.api.ApiError
 import org.hertsig.stackoverflow.dto.api.ApiResponse
 import org.hertsig.stackoverflow.dto.api.Filter
@@ -109,7 +109,7 @@ class StackExchangeApiService(
     private suspend inline fun <reified T> parseResponse(response: HttpResponse): Pair<List<T>, Boolean> {
         val text = response.bodyAsText()
         if (response.status != HttpStatusCode.OK) {
-            log.error("Request to ${response.request.url} failed with status code ${response.status}, body was $text")
+            log.error{"Request to ${response.request.url} failed with status code ${response.status}, body was $text"}
             if (response.status.value in 400..499) {
                 val error = try {
                     json.decodeFromString<ApiError>(text)
@@ -122,12 +122,12 @@ class StackExchangeApiService(
             return emptyList<T>() to false
         }
 
-        log.debug("Decoding API response: $text")
+        log.debug{"Decoding API response: $text"}
         val responseData = json.decodeFromString<ApiResponse<T>>(text)
         if (responseData.quotaRemaining < responseData.quotaMax / 100) {
-            log.warn("Quota remaining low: ${responseData.quotaRemaining}/${responseData.quotaMax}")
+            log.warn{"Quota remaining low: ${responseData.quotaRemaining}/${responseData.quotaMax}"}
         } else {
-            log.debug("Quota remaining: ${responseData.quotaRemaining}/${responseData.quotaMax}")
+            log.trace{"Quota remaining: ${responseData.quotaRemaining}/${responseData.quotaMax}"}
         }
         handleBackoff(responseData.backoff)
         return responseData.items to responseData.hasMore
@@ -136,7 +136,7 @@ class StackExchangeApiService(
     private fun handleBackoff(backoff: Int?) {
         if (backoff != null) {
             // This doesn't really count as "handling" it but I've never seen one of these so it's probably fine.
-            log.warn("Got backoff request for $backoff seconds")
+            log.warn{"Got backoff request for $backoff seconds"}
         }
     }
 }

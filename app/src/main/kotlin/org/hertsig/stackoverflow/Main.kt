@@ -8,21 +8,27 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.hertsig.compose.registerExceptionHandler
 import org.hertsig.core.logger
+import org.hertsig.stackoverflow.service.StackExchangeApiService
+import org.hertsig.stackoverflow.service.StackExchangeWebsocketService
 import org.hertsig.stackoverflow.ui.App
+import org.hertsig.stackoverflow.ui.initialWatchedTags
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 private val log = logger {}
 internal const val APP_NAME = "StackOverflow watcher"
-private val initialTags = arrayOf("java", "kotlin", "jooq", "guava", "guice", "jersey", "compose-desktop")
 
 fun main() = runBlocking {
     registerExceptionHandler()
 
-    val service = StackOverflowService(StackExchangeApiService(), StackExchangeWebsocketService())
-    service.preloadWatchedQuestions(initialTags.toSet())
-    launch { service.startWebsocket(*initialTags) }
-    launch { service.startQuestionPoller() }
+    val apiService = StackExchangeApiService()
+    val websocketService = StackExchangeWebsocketService()
+    launch {
+        websocketService.connect()
+        initialWatchedTags.forEach {
+            websocketService.addWatchedTag(it)
+        }
+    }
 
     application {
         Window(
@@ -30,7 +36,7 @@ fun main() = runBlocking {
             rememberWindowState(width = 1500.dp, height = 900.dp),
             title = APP_NAME,
         ) {
-            App(service)
+            App(apiService, websocketService)
         }
     }
 }

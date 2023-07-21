@@ -15,9 +15,9 @@ import androidx.compose.material.icons.filled.SpeakerNotesOff
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.outlined.QuestionAnswer
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -26,6 +26,7 @@ import org.hertsig.compose.component.SpacedColumn
 import org.hertsig.compose.component.SpacedRow
 import org.hertsig.compose.component.TextLine
 import org.hertsig.compose.component.TooltipText
+import org.hertsig.stackoverflow.controller.QuestionController
 import org.hertsig.stackoverflow.dto.api.Question
 import java.awt.Desktop
 import java.net.URI
@@ -35,8 +36,12 @@ import java.time.format.DateTimeFormatter
 private val desktop = if (Desktop.isDesktopSupported()) Desktop.getDesktop() else null
 
 @Composable
-fun Question(question: Question, modifier: Modifier = Modifier) {
-    SpacedRow(modifier.clickable { desktop?.browse(URI(question.url)) },
+fun Question(controller: QuestionController, question: Question) {
+    SpacedRow(Modifier.alpha(if (controller.fade(question)) .6f else 1f)
+        .clickable {
+            controller.resetNew()
+            desktop?.browse(URI(question.url))
+        },
         16.dp, vertical = Alignment.CenterVertically
     ) {
         Row(
@@ -84,7 +89,7 @@ fun Question(question: Question, modifier: Modifier = Modifier) {
                     TextLine(question.viewCount.toString(), Modifier.width(56.dp), align = TextAlign.End)
                     Icon(Icons.Default.Visibility, "views")
                 }
-                val date = remember(question.creationDate) { resolveLocal(question.creationDate) }
+                val date = resolveLocal(controller.displayDate(question))
                 TooltipText(date.format(DATETIME_PATTERN)) {
                     TextLine(date.formatDateOrTime(), Modifier.width(100.dp), align = TextAlign.End)
                 }
@@ -102,7 +107,7 @@ private fun Tag(tag: String, modifier: Modifier = Modifier) {
     )
 }
 
-private fun resolveLocal(timestamp: Long, zone: ZoneId = ZoneId.systemDefault()): ZonedDateTime = Instant
+fun resolveLocal(timestamp: Long, zone: ZoneId = ZoneId.systemDefault()): ZonedDateTime = Instant
     .ofEpochSecond(timestamp).atZone(ZoneOffset.UTC)
     .withZoneSameInstant(zone)
 
@@ -111,4 +116,4 @@ private val TIME_PATTERN = DateTimeFormatter.ofPattern("HH:mm")
 private val DATETIME_PATTERN = DateTimeFormatter.ofPattern("d MMMM yyyy '@' HH:mm")
 
 private val ZonedDateTime.isToday get() = toLocalDate() == LocalDate.now()
-private fun ZonedDateTime.formatDateOrTime() = format(if (isToday) TIME_PATTERN else DATE_PATTERN)
+fun ZonedDateTime.formatDateOrTime() = format(if (isToday) TIME_PATTERN else DATE_PATTERN)
