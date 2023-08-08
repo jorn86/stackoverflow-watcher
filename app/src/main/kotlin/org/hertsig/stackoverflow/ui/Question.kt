@@ -9,10 +9,7 @@ import androidx.compose.material.LocalTextStyle
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Comment
-import androidx.compose.material.icons.filled.SpeakerNotesOff
-import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.QuestionAnswer
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -39,7 +36,7 @@ private val desktop = if (Desktop.isDesktopSupported()) Desktop.getDesktop() els
 fun Question(controller: QuestionController, question: Question) {
     SpacedRow(Modifier.alpha(if (controller.fade(question)) .6f else 1f)
         .clickable {
-            controller.resetNew()
+            controller.removeNew(question.questionId)
             desktop?.browse(URI(question.url))
         },
         16.dp, vertical = Alignment.CenterVertically
@@ -78,7 +75,10 @@ fun Question(controller: QuestionController, question: Question) {
                 }
                 question.tags.forEach { Tag(it) }
                 Spacer(Modifier.weight(1f))
-                if (question.bountyAmount != null && question.bountyClosesDate != null) {
+                if (controller.isNew(question.questionId)) {
+                    Icon(Icons.Default.FiberNew, "new")
+                }
+                if (question.bountyClosesDate != null) {
                     val bountyDate = resolveLocal(question.bountyClosesDate, ZoneId.systemDefault())
                         .format(DATETIME_PATTERN)
                     TooltipText("until $bountyDate") {

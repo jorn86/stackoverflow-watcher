@@ -48,13 +48,14 @@ class StackExchangeApiService(
         return questions
     }
 
-    suspend fun getQuestions(ids: Collection<Long>, site: String = defaultSite): List<Question> {
+    suspend fun getQuestions(ids: Set<Long>, limit: Int = 50, site: String = defaultSite): List<Question> {
         if (ids.isEmpty()) return emptyList()
         require(ids.size <= 100)
-        val query = ids.distinct().joinToString(";")
+        val query = ids.joinToString(";")
         val response = apiCall("questions/$query", site) {
             parameter("filter", FILTER_NAME)
             parameter("sort", "creation")
+            parameter("pagesize", limit)
         }
         val (questions) = parseResponse<Question>(response)
         return questions

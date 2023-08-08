@@ -31,15 +31,16 @@ abstract class QuestionController(
 
     open val new get() = 0
     open fun resetNew() {}
+    open fun removeNew(questionId: Long) {}
 
     @Composable
     fun collectAsState() = questions.collectAsState()
 
     open fun displayDate(question: Question): Long = question.creationDate
-    open fun fade(question: Question): Boolean = false
+    open fun fade(question: Question) = false
+    open fun isNew(questionId: Long) = false
 
     suspend fun startPolling() {
-        resetNew()
         backgroundTask("Poller for $name", 10.seconds) {
             log.trace { "Checking poll time for $name" }
             if (pollMutex.isLocked) {

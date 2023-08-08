@@ -1,11 +1,10 @@
 package org.hertsig.stackoverflow.controller
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.toMutableStateList
 import kotlinx.coroutines.delay
 import org.hertsig.core.debug
+import org.hertsig.core.info
 import org.hertsig.core.logger
 import org.hertsig.stackoverflow.dto.api.Question
 import org.hertsig.stackoverflow.dto.websocket.NewQuestionMessage
@@ -34,24 +33,25 @@ class RecentQuestionController(
 ): QuestionController("Recent", 1.minutes) {
     val watchedTags = initialWatchedTags.toMutableStateList()
     val ignoredTags = initialIgnoredTags.toMutableStateList()
-    override var new by mutableStateOf(0); private set
+    private val newQuestionIds = mutableStateListOf<Long>()
+    override val new get() = newQuestionIds.size
     private val questionIds: MutableSet<Long> = LinkedHashSet(limit)
     private val queryByTagInterval = queryByTagInterval.toJavaDuration()
     private var lastQueryByTags = Instant.EPOCH
 
     init {
-        (1..100).count()
         require(limit in 1..100)
         websocketService.addListener(::onNewQuestion)
     }
 
     private suspend fun onNewQuestion(question: NewQuestionMessage) {
         if (question.tags.any { it in watchedTags }) {
-            questionIds.add(question.id.toLong())
-            cleanupQuestionIds()
+            val newQuestionId = question.id.toLong()
+            if (!questionIds.add(newQuestionId)) return
             delay(1.seconds) // Give the API some time to realize the question exists
-            log.debug{"Requesting poll to add new question ${question.id}"}
-            new++
+            newQuestionIds.add(newQuestionId)
+            cleanupQuestionIds()
+            log.debug { "Requesting poll to add new question $newQuestionId" }
             doPoll()
         }
     }
@@ -62,6 +62,7 @@ class RecentQuestionController(
             val iterator = questionIds.iterator()
             repeat(questionIds.size - limit) { iterator.removeNext() }
         }
+        newQuestionIds.retainAll(questionIds)
     }
 
     override suspend fun queryQuestions(): List<Question> {
@@ -71,16 +72,16 @@ class RecentQuestionController(
             val ids = questions.map { it.questionId }.toSet()
             if (!ids.containsAll(questionIds)) {
                 val missing = questionIds - ids
-                log.info("Query by tags missed ${missing.size} watched questions (probably too old)")
+                log.debug { "Query by tags missed ${missing.size} watched questions (probably too old)" }
             }
             if (!questionIds.containsAll(ids)) {
                 val new = questions.filterNot { it.questionId in questionIds }
-                this.new += new.size
                 if (questionIds.isNotEmpty()) {
+                    newQuestionIds.addAll(new.map { it.questionId })
                     val detail = new.joinToString("\n", ":\n") { "${it.title} / ${resolveLocal(it.creationDate).formatDateOrTime()}"}
-                    log.info("Query by tags got ${new.size} previously unwatched questions:$detail")
+                    log.info { "Query by tags got ${new.size} previously unwatched questions:$detail" }
                 } else {
-                    log.info("Started with ${new.size} questions")
+                    log.info { "Started with ${new.size} questions" }
                 }
                 questionIds.addAll(ids)
                 cleanupQuestionIds()
@@ -90,10 +91,10 @@ class RecentQuestionController(
         return queryByWatchedIds()
     }
 
-    private suspend fun queryByWatchedIds() = filterClosedAndMistagged(apiService.getQuestions(questionIds, site))
+    private suspend fun queryByWatchedIds() = filterClosedAndMistagged(apiService.getQuestions(questionIds, limit, site))
 
     private suspend fun queryByWatchedTags(window: Duration = queryByTagWindow) = watchedTags
-        .flatMap { apiService.getQuestionsByTag(it, window) }
+        .flatMap { apiService.getQuestionsByTag(it, window, limit, site) }
         .distinctBy { it.questionId }
         .filterNot { it.tags.anyIgnored(ignoredTags) }
         .sortedByDescending { it.creationDate }
@@ -116,6 +117,7 @@ class RecentQuestionController(
             log.debug{"Removed ${mistaggedIds.size} question(s) that no longer have watched tags from list"}
         }
 
+        cleanupQuestionIds()
         return qs
     }
 
@@ -125,13 +127,16 @@ class RecentQuestionController(
         return closed || ignored
     }
 
+    override fun isNew(questionId: Long) = questionId in newQuestionIds
+
     override fun resetNew() {
-        new = 0
-        String::class.java.annotations
+        newQuestionIds.clear()
+    }
+
+    override fun removeNew(questionId: Long) {
+        // The list shouldn't have duplicates, but if it does this will remove all of them
+        newQuestionIds.removeIf { it == questionId }
     }
 }
 
-private fun MutableIterator<*>.removeNext() {
-    next()
-    remove()
-}
+private fun <T> MutableIterator<T>.removeNext() = next().apply { remove() }

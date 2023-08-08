@@ -52,27 +52,24 @@ class StackExchangeWebsocketService(
         val frame = incoming.receive()
         log.debug{"Received frame $frame"}
         if (frame !is Frame.Text) {
-            log.warn("Skipping unexpected frame $frame")
-            return
+            return log.warn("Skipping unexpected frame $frame")
         }
 
         val text = frame.readText()
-        try {
+        val message = try {
             val container = json.decodeFromString<WebsocketMessage>(text)
             if (container.action == "hb") {
                 log.trace("Responding to heartbeat: ${container.data}")
-                send(Frame.Text(container.data)) // pong
-                return
+                return send(Frame.Text(container.data)) // pong
             }
-
-            val message = json.decodeFromString<NewQuestionMessage>(container.data)
-            log.info { "Received new question: $message" }
-            listeners.forEach { it(message) }
+            json.decodeFromString<NewQuestionMessage>(container.data)
         } catch (e: SerializationException) {
-            log.error(e) {"Error parsing frame: $text"}
+            return log.error(e) {"Error parsing frame: $text"}
         } catch (e: Exception) {
-            log.error(e) {"Unexpected exception for frame $text"}
+            return log.error(e) {"Unexpected exception for frame $text"}
         }
+        log.info { "Received new question: $message" }
+        listeners.forEach { it(message) }
     }
 
     fun addWatchedTag(tag: String) {
