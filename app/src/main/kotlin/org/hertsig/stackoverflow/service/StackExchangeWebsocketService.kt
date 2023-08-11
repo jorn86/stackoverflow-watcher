@@ -4,6 +4,7 @@ import io.ktor.client.*
 import io.ktor.client.plugins.websocket.*
 import io.ktor.websocket.*
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.decodeFromString
@@ -15,6 +16,8 @@ import org.hertsig.core.logger
 import org.hertsig.stackoverflow.dto.websocket.NewQuestionMessage
 import org.hertsig.stackoverflow.dto.websocket.WebsocketMessage
 import org.hertsig.stackoverflow.util.backgroundTask
+import java.time.Instant
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
 private val log = logger {}
@@ -27,6 +30,7 @@ class StackExchangeWebsocketService(
 ) {
     private var activeWebsocket: WebSocketSession? = null
     private val listeners = mutableListOf<NewQuestionListener>()
+    private var lastPong = Instant.EPOCH
 
     fun addListener(listener: NewQuestionListener) {
         listeners.add(listener)
@@ -42,8 +46,26 @@ class StackExchangeWebsocketService(
         socket.launch {
             backgroundTask("Websocket", 0.seconds) { socket.receiveNextFrame() }
             log.warn("Receive loop has exited, closing websocket connection")
-            socket.close(CloseReason(CloseReason.Codes.GOING_AWAY, "bye"))
+            cleanupWebsocket(socket)
+        }
+        socket.launch {
+            backgroundTask("Websocket ping", 5.minutes, false) {
+                socket.send(Frame.Text("ping"))
+                delay(5.seconds)
+                if (lastPong.isBefore(Instant.now().minusSeconds(6))) {
+                    log.warn("Ping did not receive pong response")
+                }
+            }
+            log.warn("Ping loop has exited, closing websocket connection")
+            cleanupWebsocket(socket)
+        }
+    }
+
+    private suspend fun cleanupWebsocket(socket: DefaultClientWebSocketSession) {
+        socket.close(CloseReason(CloseReason.Codes.GOING_AWAY, "bye"))
+        try {
             socket.cancel()
+        } finally {
             activeWebsocket = null
         }
     }
@@ -56,6 +78,11 @@ class StackExchangeWebsocketService(
         }
 
         val text = frame.readText()
+        if (text == "pong") {
+            lastPong = Instant.now()
+            return
+        }
+
         val message = try {
             val container = json.decodeFromString<WebsocketMessage>(text)
             if (container.action == "hb") {

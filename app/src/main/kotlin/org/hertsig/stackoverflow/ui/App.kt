@@ -24,7 +24,8 @@ import org.hertsig.stackoverflow.service.StackExchangeApiService
 import org.hertsig.stackoverflow.service.StackExchangeWebsocketService
 
 val initialWatchedTags = setOf("java", "kotlin", "jooq", "guava", "guice", "jersey", "compose-desktop")
-private val initialIgnoredTags = setOf("hibernate", "javafx", "javascript", "jpa", "minecraft", "pdf", "python", "react", "selenium", "swing")
+private val initialIgnoredTags = setOf("apache-poi", "hibernate", "javafx", "javascript", "jpa",
+    "minecraft", "pdf", "python", "react", "selenium", "swing")
 
 @Composable
 fun App(apiService: StackExchangeApiService, websocketService: StackExchangeWebsocketService) {
