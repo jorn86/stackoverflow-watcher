@@ -11,7 +11,6 @@ import org.hertsig.core.logger
 import org.hertsig.stackoverflow.service.StackExchangeApiService
 import org.hertsig.stackoverflow.service.StackExchangeWebsocketService
 import org.hertsig.stackoverflow.ui.App
-import org.hertsig.stackoverflow.ui.initialWatchedTags
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
@@ -25,9 +24,6 @@ fun main() = runBlocking {
     val websocketService = StackExchangeWebsocketService()
     launch {
         websocketService.connect()
-        initialWatchedTags.forEach {
-            websocketService.addWatchedTag(it)
-        }
     }
 
     application {

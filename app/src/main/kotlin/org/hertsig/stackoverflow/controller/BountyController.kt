@@ -7,8 +7,8 @@ import kotlin.time.Duration.Companion.minutes
 
 class BountyController(
     private val apiService: StackExchangeApiService,
-    private val watchedTags: Set<String> = emptySet(),
-    private val ignoredTags: Set<String> = emptySet(),
+    private val watchedTags: Collection<String> = emptySet(),
+    private val ignoredTags: Collection<String> = emptySet(),
     private val site: String = "stackoverflow",
     interval: Duration = 15.minutes,
 ): QuestionController("Bounty", interval) {

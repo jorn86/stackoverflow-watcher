@@ -37,7 +37,7 @@ fun Question(controller: QuestionController, question: Question) {
     SpacedRow(Modifier.alpha(if (controller.fade(question)) .6f else 1f)
         .clickable {
             controller.removeNew(question.questionId)
-            desktop?.browse(URI(question.url))
+            desktop?.browse(URI(question.link))
         },
         16.dp, vertical = Alignment.CenterVertically
     ) {

@@ -12,34 +12,45 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.json.decodeFromStream
 import org.hertsig.compose.component.SpacedRow
 import org.hertsig.compose.component.TabBuilder
 import org.hertsig.compose.component.TabView
 import org.hertsig.compose.component.TextLine
 import org.hertsig.stackoverflow.APP_NAME
+import org.hertsig.stackoverflow.SiteList
 import org.hertsig.stackoverflow.controller.BountyController
+import org.hertsig.stackoverflow.controller.Config
 import org.hertsig.stackoverflow.controller.QuestionController
 import org.hertsig.stackoverflow.controller.RecentQuestionController
 import org.hertsig.stackoverflow.service.StackExchangeApiService
 import org.hertsig.stackoverflow.service.StackExchangeWebsocketService
-
-val initialWatchedTags = setOf("java", "kotlin", "jooq", "guava", "guice", "jersey", "compose-desktop")
-private val initialIgnoredTags = setOf("apache-poi", "hibernate", "javafx", "javascript", "jpa",
-    "minecraft", "pdf", "python", "react", "selenium", "swing")
+import org.hertsig.stackoverflow.service.defaultJson
+import java.io.FileInputStream
 
 @Composable
 fun App(apiService: StackExchangeApiService, websocketService: StackExchangeWebsocketService) {
-    val controller = remember {
-        RecentQuestionController(apiService, websocketService, initialWatchedTags, initialIgnoredTags)
+    val controllers = remember { mutableStateListOf<QuestionController>() }
+    LaunchedEffect(Unit) {
+        val sites = SiteList.get(apiService).associateBy { it.siteId }
+        @OptIn(ExperimentalSerializationApi::class)
+        val config = FileInputStream("stackexchange.json").use {
+            defaultJson.decodeFromStream<Config>(it)
+        }
+        config.controllers.forEach { controllerConfig ->
+            val site = sites.getValue(controllerConfig.siteId)
+            val controller = when (controllerConfig.type) {
+                "recent" -> RecentQuestionController(apiService, websocketService, controllerConfig.tags, controllerConfig.ignoredTags, site.apiParameter)
+                    .also { controllerConfig.tags.forEach { websocketService.addWatchedTag(it, site.siteId) } }
+                "bounty" -> BountyController(apiService, controllerConfig.tags, controllerConfig.ignoredTags).also { it.doPoll() }
+                else -> error("Unknown type ${controllerConfig.type}")
+            }
+            controllers.add(controller)
+        }
     }
 
-    val bountyController = remember { BountyController(apiService, initialWatchedTags, initialIgnoredTags) }
-    LaunchedEffect(Unit) { bountyController.doPoll() }
-
-    val views = listOf(controller, bountyController).map {
-        TabBuilder({ TabTitle(it) }) { QuestionsView(it) }
-    }
-
+    val views = controllers.map { TabBuilder({ TabTitle(it) }) { QuestionsView(it) } }
     var dark by remember { mutableStateOf(true) }
     StackOverflowTheme(dark) {
         Column(Modifier.background(MaterialTheme.colors.surface)) {
@@ -48,7 +59,7 @@ fun App(apiService: StackExchangeApiService, websocketService: StackExchangeWebs
                 Spacer(Modifier.weight(1f))
                 Switch(dark, { dark = it })
             }
-            TabView(views)
+            if (views.isNotEmpty()) TabView(views)
         }
     }
 }

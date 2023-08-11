@@ -1,0 +1,24 @@
+{
+  "controllers": [
+    {
+      "site_id": 1,
+      "type": "recent",
+      "tags": ["java", "kotlin", "jooq", "guava", "guice", "jersey", "compose-desktop"],
+      "ignored_tags": ["apache-poi", "hibernate", "javafx", "javascript", "jpa",
+        "minecraft", "pdf", "python", "react", "selenium", "swing"]
+    },
+    {
+      "site_id": 1,
+      "type": "bounty",
+      "tags": ["java", "kotlin"],
+      "ignored_tags": ["apache-poi", "hibernate", "javafx", "javascript", "jpa",
+        "minecraft", "pdf", "python", "react", "selenium", "swing"]
+    },
+    {
+      "site_id": 122,
+      "type": "recent",
+      "tags": ["dnd-5e"],
+      "ignored_tags": []
+    }
+  ]
+}

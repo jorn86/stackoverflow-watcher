@@ -99,9 +99,9 @@ class StackExchangeWebsocketService(
         listeners.forEach { it(message) }
     }
 
-    fun addWatchedTag(tag: String) {
+    fun addWatchedTag(tag: String, siteId: Int = 1) {
         withWebsocket {
-            send(Frame.Text("1-questions-newest-tag-$tag"))
+            send(Frame.Text("$siteId-questions-newest-tag-$tag"))
             log.info { "Subscribed to tag $tag" }
         }
     }

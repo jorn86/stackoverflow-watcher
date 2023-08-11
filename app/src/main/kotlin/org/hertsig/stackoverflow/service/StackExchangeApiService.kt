@@ -11,10 +11,7 @@ import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNamingStrategy
 import org.hertsig.core.*
-import org.hertsig.stackoverflow.dto.api.ApiError
-import org.hertsig.stackoverflow.dto.api.ApiResponse
-import org.hertsig.stackoverflow.dto.api.Filter
-import org.hertsig.stackoverflow.dto.api.Question
+import org.hertsig.stackoverflow.dto.api.*
 import java.time.Instant
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
@@ -81,8 +78,15 @@ class StackExchangeApiService(
         return parseResponse<Question>(response)
     }
 
+    suspend fun getSites(): List<ApiSite> {
+        val response = apiCall("sites", null) {
+            parameter("pagesize", 9999)
+        }
+        val (sites) = parseResponse<ApiSite>(response)
+        return sites
+    }
+
     suspend fun getFilter(): Filter {
-        Instant.now()
         val response = apiCall("filters/$FILTER_NAME", null)
         val (filters) = parseResponse<Filter>(response)
         return filters.single()

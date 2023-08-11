@@ -1,12 +1,12 @@
 package org.hertsig.stackoverflow.dto.api
 
 import kotlinx.serialization.Serializable
-import org.hertsig.stackoverflow.controller.questionUrl
 
 @Serializable
 data class Question(
     val questionId: Long,
     val title: String,
+    val link: String,
     val acceptedAnswerId: Long? = null,
     val score: Int,
     val answerCount: Int,
@@ -19,6 +19,4 @@ data class Question(
     val tags: List<String>,
     val answers: List<Answer> = emptyList(),
     val commentCount: Int = 0,
-) {
-    val url get() = questionUrl(questionId.toString())
-}
+)

@@ -64,8 +64,6 @@ abstract class QuestionController(
     internal abstract suspend fun queryQuestions(): List<Question>
 }
 
-internal fun questionUrl(id: String) = "https://stackoverflow.com/questions/$id"
-
 fun Iterable<String>.anyIgnored(ignoredTags: Collection<String>) = any { tag ->
     ignoredTags.any { ignored -> tag.startsWith(ignored) }
 }
