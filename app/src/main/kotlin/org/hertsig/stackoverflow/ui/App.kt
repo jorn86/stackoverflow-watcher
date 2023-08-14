@@ -43,7 +43,7 @@ fun App(apiService: StackExchangeApiService, websocketService: StackExchangeWebs
             val controller = when (controllerConfig.type) {
                 "recent" -> RecentQuestionController(apiService, websocketService, controllerConfig.tags, controllerConfig.ignoredTags, site.apiParameter)
                     .also { controllerConfig.tags.forEach { websocketService.addWatchedTag(it, site.siteId) } }
-                "bounty" -> BountyController(apiService, controllerConfig.tags, controllerConfig.ignoredTags).also { it.doPoll() }
+                "bounty" -> BountyController(apiService, controllerConfig.tags, controllerConfig.ignoredTags, site.apiParameter).also { it.doPoll() }
                 else -> error("Unknown type ${controllerConfig.type}")
             }
             controllers.add(controller)

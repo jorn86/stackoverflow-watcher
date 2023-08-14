@@ -15,6 +15,12 @@
         "minecraft", "pdf", "python", "react", "selenium", "swing"]
     },
     {
+      "site_id": 196,
+      "type": "recent",
+      "tags": ["java", "kotlin"],
+      "ignored_tags": []
+    },
+    {
       "site_id": 122,
       "type": "recent",
       "tags": ["dnd-5e"],

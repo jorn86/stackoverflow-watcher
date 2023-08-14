@@ -86,7 +86,9 @@ fun Question(controller: QuestionController, question: Question) {
                     }
                 }
                 if (question.viewCount > 0) {
-                    TextLine(question.viewCount.toString(), Modifier.width(56.dp), align = TextAlign.End)
+                    val viewText = if (question.viewCount < 10000) question.viewCount.toString()
+                        else "${question.viewCount/1000}k"
+                    TextLine(viewText, Modifier.width(56.dp), align = TextAlign.End)
                     Icon(Icons.Default.Visibility, "views")
                 }
                 val date = resolveLocal(controller.displayDate(question))

@@ -69,21 +69,25 @@ class RecentQuestionController(
         if (lastQueryByTags.plus(queryByTagInterval).isBefore(Instant.now())) {
             lastQueryByTags = Instant.now()
             val questions = queryByWatchedTags()
-            val ids = questions.map { it.questionId }.toSet()
+            val ids = questions.map { it.questionId }
             if (!ids.containsAll(questionIds)) {
-                val missing = questionIds - ids
+                val missing = questionIds - ids.toSet()
                 log.debug { "Query by tags missed ${missing.size} watched questions (probably too old)" }
             }
             if (!questionIds.containsAll(ids)) {
                 val new = questions.filterNot { it.questionId in questionIds }
                 if (questionIds.isNotEmpty()) {
                     newQuestionIds.addAll(new.map { it.questionId })
-                    val detail = new.joinToString("\n", ":\n") { "${it.title} / ${resolveLocal(it.creationDate).formatDateOrTime()}"}
+                    val detail = new.joinToString("\n", "\n") {
+                        "(${it.questionId}) ${it.title} / ${resolveLocal(it.creationDate).formatDateOrTime()}"
+                    }
                     log.info { "Query by tags got ${new.size} previously unwatched questions:$detail" }
                 } else {
                     log.info { "Started with ${new.size} questions" }
                 }
-                questionIds.addAll(ids)
+
+                // Add oldest first so that #cleanupQuestionIds will cleanup in the right order
+                questionIds.addAll(ids.reversed())
                 cleanupQuestionIds()
             }
         }
@@ -94,12 +98,13 @@ class RecentQuestionController(
     private suspend fun queryByWatchedIds() = filterClosedAndMistagged(apiService.getQuestions(questionIds, limit, site))
 
     private suspend fun queryByWatchedTags(window: Duration = queryByTagWindow) = watchedTags
-        .flatMap { apiService.getQuestionsByTag(it, window, limit, site) }
+        .flatMap { apiService.getQuestionsByTag(it, window, limit, site) }.asSequence()
         .distinctBy { it.questionId }
         .filterNot { it.tags.anyIgnored(ignoredTags) }
+        .filter { it.closedDate == null }
         .sortedByDescending { it.creationDate }
-        .let(::filterClosedAndMistagged)
         .take(limit)
+        .toList()
 
     private fun filterClosedAndMistagged(questions: List<Question>): List<Question> {
         var qs = questions
