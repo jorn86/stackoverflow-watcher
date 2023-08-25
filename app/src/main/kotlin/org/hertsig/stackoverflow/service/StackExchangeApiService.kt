@@ -10,12 +10,12 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNamingStrategy
-import org.hertsig.core.*
+import org.hertsig.core.error
+import org.hertsig.core.logger
+import org.hertsig.core.trace
+import org.hertsig.core.warn
 import org.hertsig.stackoverflow.dto.api.*
 import java.time.Instant
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.hours
-import kotlin.time.toJavaDuration
 
 private val log = logger {}
 private const val FILTER_NAME = "5147LfK)H"
@@ -29,7 +29,7 @@ class StackExchangeApiService(
 ) {
     suspend fun getQuestionsByTag(
         tag: String,
-        window: Duration = 2.hours,
+        after: Instant,
         limit: Int = 50,
         site: String = defaultSite,
     ): List<Question> {
@@ -38,7 +38,7 @@ class StackExchangeApiService(
             parameter("filter", FILTER_NAME)
             parameter("sort", "creation")
             parameter("tagged", tag)
-            parameter("min", Instant.now().minus(window.toJavaDuration()).epochSecond)
+            parameter("min", after.epochSecond)
             parameter("pagesize", limit)
         }
         val (questions) = parseResponse<Question>(response)
@@ -114,7 +114,7 @@ class StackExchangeApiService(
     private suspend inline fun <reified T> parseResponse(response: HttpResponse): Pair<List<T>, Boolean> {
         val text = response.bodyAsText()
         if (response.status != HttpStatusCode.OK) {
-            log.error{"Request to ${response.request.url} failed with status code ${response.status}, body was $text"}
+            log.error { "Request to ${response.request.url} failed with status code ${response.status}, body was $text" }
             if (response.status.value in 400..499) {
                 val error = try {
                     json.decodeFromString<ApiError>(text)
@@ -127,12 +127,12 @@ class StackExchangeApiService(
             return emptyList<T>() to false
         }
 
-        log.debug{"Decoding API response: $text"}
+        log.trace { "Decoding API response: $text" }
         val responseData = json.decodeFromString<ApiResponse<T>>(text)
-        if (responseData.quotaRemaining < responseData.quotaMax / 100) {
-            log.warn{"Quota remaining low: ${responseData.quotaRemaining}/${responseData.quotaMax}"}
+        if (responseData.quotaRemaining < responseData.quotaMax / 2) {
+            log.warn { "Quota remaining low: ${responseData.quotaRemaining}/${responseData.quotaMax}" }
         } else {
-            log.trace{"Quota remaining: ${responseData.quotaRemaining}/${responseData.quotaMax}"}
+            log.trace { "Quota remaining: ${responseData.quotaRemaining}/${responseData.quotaMax}" }
         }
         handleBackoff(responseData.backoff)
         return responseData.items to responseData.hasMore
@@ -141,7 +141,7 @@ class StackExchangeApiService(
     private fun handleBackoff(backoff: Int?) {
         if (backoff != null) {
             // This doesn't really count as "handling" it but I've never seen one of these so it's probably fine.
-            log.warn{"Got backoff request for $backoff seconds"}
+            log.warn { "Got backoff request for $backoff seconds" }
         }
     }
 }

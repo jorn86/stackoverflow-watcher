@@ -1,10 +1,14 @@
 package org.hertsig.stackoverflow.service
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import io.ktor.client.*
 import io.ktor.client.plugins.websocket.*
 import io.ktor.websocket.*
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.decodeFromString
@@ -13,6 +17,7 @@ import org.hertsig.core.debug
 import org.hertsig.core.error
 import org.hertsig.core.info
 import org.hertsig.core.logger
+import org.hertsig.stackoverflow.SiteMetadata
 import org.hertsig.stackoverflow.dto.websocket.NewQuestionMessage
 import org.hertsig.stackoverflow.dto.websocket.WebsocketMessage
 import org.hertsig.stackoverflow.util.backgroundTask
@@ -22,7 +27,7 @@ import kotlin.time.Duration.Companion.seconds
 
 private val log = logger {}
 
-typealias NewQuestionListener = suspend (NewQuestionMessage) -> Unit
+typealias NewQuestionListener = suspend (String, NewQuestionMessage) -> Unit
 
 class StackExchangeWebsocketService(
     private val json: Json = defaultJson,
@@ -30,7 +35,8 @@ class StackExchangeWebsocketService(
 ) {
     private var activeWebsocket: WebSocketSession? = null
     private val listeners = mutableListOf<NewQuestionListener>()
-    private var lastPong = Instant.EPOCH
+    private var lastContact = Instant.EPOCH
+    var connectionError by mutableStateOf(false); private set
 
     fun addListener(listener: NewQuestionListener) {
         listeners.add(listener)
@@ -45,23 +51,26 @@ class StackExchangeWebsocketService(
         log.info("Websocket connected")
         socket.launch {
             backgroundTask("Websocket", 0.seconds) { socket.receiveNextFrame() }
-            log.warn("Receive loop has exited, closing websocket connection")
+            connectionError = true
             cleanupWebsocket(socket)
         }
         socket.launch {
-            backgroundTask("Websocket ping", 5.minutes, false) {
-                socket.send(Frame.Text("ping"))
-                delay(5.seconds)
-                if (lastPong.isBefore(Instant.now().minusSeconds(6))) {
-                    log.warn("Ping did not receive pong response")
+            backgroundTask("Websocket ping", 1.minutes, false) {
+                if (lastContact.isBefore(Instant.now().minusSeconds(55))) {
+                    log.debug("Sending ping")
+                    socket.send(Frame.Text("ping"))
+                    delay(5.seconds)
+                    if (lastContact.isBefore(Instant.now().minusSeconds(6))) {
+                        error("Ping did not receive pong response") // throwing stops background task
+                    }
                 }
             }
-            log.warn("Ping loop has exited, closing websocket connection")
+            connectionError = true
             cleanupWebsocket(socket)
         }
     }
 
-    private suspend fun cleanupWebsocket(socket: DefaultClientWebSocketSession) {
+    private suspend fun cleanupWebsocket(socket: WebSocketSession) {
         socket.close(CloseReason(CloseReason.Codes.GOING_AWAY, "bye"))
         try {
             socket.cancel()
@@ -72,43 +81,43 @@ class StackExchangeWebsocketService(
 
     private suspend fun WebSocketSession.receiveNextFrame() {
         val frame = incoming.receive()
-        log.debug{"Received frame $frame"}
+        log.debug { "Received frame $frame" }
+        lastContact = Instant.now()
         if (frame !is Frame.Text) {
             return log.warn("Skipping unexpected frame $frame")
         }
 
         val text = frame.readText()
         if (text == "pong") {
-            lastPong = Instant.now()
             return
         }
 
-        val message = try {
+        val (action, message) = try {
             val container = json.decodeFromString<WebsocketMessage>(text)
             if (container.action == "hb") {
                 log.trace("Responding to heartbeat: ${container.data}")
                 return send(Frame.Text(container.data)) // pong
             }
-            json.decodeFromString<NewQuestionMessage>(container.data)
+            container.action to json.decodeFromString<NewQuestionMessage>(container.data)
         } catch (e: SerializationException) {
             return log.error(e) {"Error parsing frame: $text"}
         } catch (e: Exception) {
             return log.error(e) {"Unexpected exception for frame $text"}
         }
         log.info { "Received new question: $message" }
-        listeners.forEach { it(message) }
+        listeners.forEach { it(action, message) }
     }
 
-    fun addWatchedTag(tag: String, siteId: Int = 1) {
+    fun addWatchedTag(site: SiteMetadata, tag: String) {
         withWebsocket {
-            send(Frame.Text("$siteId-questions-newest-tag-$tag"))
-            log.info { "Subscribed to tag $tag" }
+            send(Frame.Text("${site.siteId}-questions-newest-tag-$tag"))
+            log.info { "Subscribed to tag $tag on ${site.name}" }
         }
     }
 
     private fun withWebsocket(action: suspend WebSocketSession.() -> Unit) {
         with(activeWebsocket) {
-            require(this != null) { "No active websocket" }
+            require(this != null && isActive) { "No active websocket" }
             launch { action() }
         }
     }

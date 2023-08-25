@@ -11,8 +11,10 @@ import org.hertsig.core.info
 import org.hertsig.core.logger
 import org.hertsig.core.trace
 import org.hertsig.core.warn
+import org.hertsig.stackoverflow.SiteMetadata
 import org.hertsig.stackoverflow.dto.api.Question
 import org.hertsig.stackoverflow.util.backgroundTask
+import java.net.URL
 import java.time.Instant
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
@@ -22,12 +24,15 @@ private val log = logger {}
 
 abstract class QuestionController(
     val name: String,
+    val site: SiteMetadata,
     interval: Duration,
     private var lastPollTime: Instant = Instant.EPOCH
 ) {
-    internal val questions = MutableStateFlow(emptyList<Question>())
+    protected val questions = MutableStateFlow(emptyList<Question>())
     private val interval = interval.toJavaDuration()
     private val pollMutex = Mutex()
+    protected val debugName get() = "$name ${site.name}"
+    protected var active = false; private set
 
     open val new get() = 0
     open fun resetNew() {}
@@ -36,27 +41,31 @@ abstract class QuestionController(
     @Composable
     fun collectAsState() = questions.collectAsState()
 
+    val iconUrl get() = URL(site.iconUrl)
+
     open fun displayDate(question: Question): Long = question.creationDate
     open fun fade(question: Question) = false
     open fun isNew(questionId: Long) = false
 
     suspend fun startPolling() {
-        backgroundTask("Poller for $name", 10.seconds) {
-            log.trace { "Checking poll time for $name" }
+        backgroundTask("Poller for $debugName", 10.seconds) {
+            active = true
+            log.trace { "Checking poll time for $debugName" }
             if (pollMutex.isLocked) {
-                log.warn{"Someone is holding lock for $name, skipping poll"}
+                log.warn{"Someone is holding lock for $debugName, skipping poll"}
             } else if (lastPollTime.plus(interval).isBefore(Instant.now())) {
                 doPoll()
                 Modifier.onGloballyPositioned {  }
             }
         }
+        active = false
     }
 
     internal suspend fun doPoll() {
         pollMutex.withLock {
             lastPollTime = Instant.now()
             val questions = queryQuestions()
-            log.info { "$name polled ${questions.size} questions" }
+            log.info { "$debugName polled ${questions.size} questions" }
             this.questions.emit(questions)
         }
     }

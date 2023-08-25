@@ -1,23 +1,26 @@
 package org.hertsig.stackoverflow.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Switch
 import androidx.compose.material.TopAppBar
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.loadImageBitmap
 import androidx.compose.ui.unit.dp
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.decodeFromStream
-import org.hertsig.compose.component.SpacedRow
-import org.hertsig.compose.component.TabBuilder
-import org.hertsig.compose.component.TabView
-import org.hertsig.compose.component.TextLine
+import org.hertsig.compose.component.*
 import org.hertsig.stackoverflow.APP_NAME
 import org.hertsig.stackoverflow.SiteList
 import org.hertsig.stackoverflow.controller.BountyController
@@ -38,15 +41,16 @@ fun App(apiService: StackExchangeApiService, websocketService: StackExchangeWebs
         val config = FileInputStream("stackexchange.json").use {
             defaultJson.decodeFromStream<Config>(it)
         }
-        config.controllers.forEach { controllerConfig ->
+        controllers.addAll(config.controllers.map { controllerConfig ->
             val site = sites.getValue(controllerConfig.siteId)
-            val controller = when (controllerConfig.type) {
-                "recent" -> RecentQuestionController(apiService, websocketService, controllerConfig.tags, controllerConfig.ignoredTags, site.apiParameter)
-                    .also { controllerConfig.tags.forEach { websocketService.addWatchedTag(it, site.siteId) } }
-                "bounty" -> BountyController(apiService, controllerConfig.tags, controllerConfig.ignoredTags, site.apiParameter).also { it.doPoll() }
+            when (controllerConfig.type) {
+                "recent" -> RecentQuestionController(apiService, websocketService, controllerConfig.tags, controllerConfig.ignoredTags, site)
+                "bounty" -> BountyController(apiService, controllerConfig.tags, controllerConfig.ignoredTags, site).also { it.doPoll() }
                 else -> error("Unknown type ${controllerConfig.type}")
             }
-            controllers.add(controller)
+        })
+        controllers.filterIsInstance<RecentQuestionController>().forEach {
+            it.watchedTags.forEach { tag -> websocketService.addWatchedTag(it.site, tag) }
         }
     }
 
@@ -57,9 +61,19 @@ fun App(apiService: StackExchangeApiService, websocketService: StackExchangeWebs
             TopAppBar {
                 TextLine(APP_NAME, Modifier.padding(start = 8.dp), Color.White)
                 Spacer(Modifier.weight(1f))
+                if (websocketService.connectionError) {
+                    TooltipText("Websocket has disconnected. Restart the app to restore instant addition of new questions") {
+                        Icon(Icons.Default.Warning, "disconnected",
+                            Modifier.padding(end = 4.dp), Color.Yellow)
+                    }
+                }
                 Switch(dark, { dark = it })
             }
-            if (views.isNotEmpty()) TabView(views)
+            if (views.isEmpty()) {
+                LoadingIndicator()
+            } else {
+                TabView(views)
+            }
         }
     }
 }
@@ -67,9 +81,13 @@ fun App(apiService: StackExchangeApiService, websocketService: StackExchangeWebs
 @Composable
 private fun TabTitle(controller: QuestionController) {
     SpacedRow {
-        TextLine(controller.name)
+        TooltipText(controller.site.name) {
+            val image = remember { controller.iconUrl.openStream().use { loadImageBitmap(it) } }
+            Image(image, "site icon", Modifier.size(24.dp))
+        }
+        RowTextLine(controller.name)
         if (controller.new > 0) {
-            TextLine("(${controller.new})", Modifier.clickable { controller.resetNew() })
+            RowTextLine("(${controller.new})", Modifier.clickable { controller.resetNew() })
         }
     }
 }

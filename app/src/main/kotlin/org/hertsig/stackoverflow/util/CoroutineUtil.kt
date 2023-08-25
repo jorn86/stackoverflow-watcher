@@ -4,6 +4,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import org.hertsig.core.debug
 import org.hertsig.core.error
+import org.hertsig.core.info
 import org.hertsig.core.logger
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
@@ -28,6 +29,6 @@ suspend fun backgroundTask(
     } catch (e: Exception) {
         log.error(e) { "Exception in background task" }
     } finally {
-        log.debug{"Cancelled: $name"}
+        log.info{"Cancelled: $name"}
     }
 }

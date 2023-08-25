@@ -22,9 +22,7 @@ fun main() = runBlocking {
 
     val apiService = StackExchangeApiService()
     val websocketService = StackExchangeWebsocketService()
-    launch {
-        websocketService.connect()
-    }
+    launch { websocketService.connect() }
 
     application {
         Window(

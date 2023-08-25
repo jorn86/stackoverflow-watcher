@@ -1,5 +1,6 @@
 package org.hertsig.stackoverflow.ui
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material.darkColors
 import androidx.compose.material.lightColors
 import androidx.compose.runtime.Composable
@@ -45,6 +46,6 @@ private val lightColors = lightColors(
 )
 
 @Composable
-fun StackOverflowTheme(dark: Boolean = true, content: @Composable () -> Unit) {
+fun StackOverflowTheme(dark: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
     Theme(if (dark) darkColors else lightColors, content = content)
 }
