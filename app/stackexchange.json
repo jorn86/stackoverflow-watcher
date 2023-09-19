@@ -4,7 +4,7 @@
       "site_id": 1,
       "type": "recent",
       "tags": ["java", "kotlin", "jooq", "guava", "guice", "jersey", "compose-desktop"],
-      "ignored_tags": ["apache-poi", "hibernate", "javafx", "javascript", "jpa",
+      "ignored_tags": ["apache-poi", "flutter", "hibernate", "javafx", "javascript", "jpa",
         "minecraft", "pdf", "python", "react", "selenium", "swing"]
     },
     {

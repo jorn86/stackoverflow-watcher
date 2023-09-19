@@ -10,10 +10,7 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNamingStrategy
-import org.hertsig.core.error
-import org.hertsig.core.logger
-import org.hertsig.core.trace
-import org.hertsig.core.warn
+import org.hertsig.core.*
 import org.hertsig.stackoverflow.dto.api.*
 import java.time.Instant
 
@@ -78,6 +75,13 @@ class StackExchangeApiService(
         return parseResponse<Question>(response)
     }
 
+    suspend fun getTagInfo(site: String, vararg tags: String): List<TagWiki> {
+        val response = apiCall("tags/${tags.joinToString(",")}/wikis", site) {
+            parameter("filter", FILTER_NAME)
+        }
+        return parseResponse<TagWiki>(response).first
+    }
+
     suspend fun getSites(): List<ApiSite> {
         val response = apiCall("sites", null) {
             parameter("pagesize", 9999)
@@ -105,11 +109,15 @@ class StackExchangeApiService(
         path: String,
         site: String?,
         builder: HttpRequestBuilder.() -> Unit = {},
-    ) = client.request("https://api.stackexchange.com/2.3/$path") {
+    ): HttpResponse {
+        val response = client.request("https://api.stackexchange.com/2.3/$path") {
             parameter("key", apiKey)
             parameter("site", site)
             builder()
         }
+        log.debug { "Request to $path returned with status ${response.status}" }
+        return response
+    }
 
     private suspend inline fun <reified T> parseResponse(response: HttpResponse): Pair<List<T>, Boolean> {
         val text = response.bodyAsText()

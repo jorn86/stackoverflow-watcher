@@ -4,7 +4,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onGloballyPositioned
+import com.google.common.cache.Cache
+import com.google.common.cache.CacheBuilder
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.hertsig.core.info
@@ -13,9 +16,14 @@ import org.hertsig.core.trace
 import org.hertsig.core.warn
 import org.hertsig.stackoverflow.SiteMetadata
 import org.hertsig.stackoverflow.dto.api.Question
+import org.hertsig.stackoverflow.dto.api.TagWiki
+import org.hertsig.stackoverflow.service.StackExchangeApiService
 import org.hertsig.stackoverflow.util.backgroundTask
 import java.net.URL
 import java.time.Instant
+import java.util.*
+import java.util.concurrent.TimeUnit
+import kotlin.jvm.optionals.getOrNull
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.toJavaDuration
@@ -23,6 +31,7 @@ import kotlin.time.toJavaDuration
 private val log = logger {}
 
 abstract class QuestionController(
+    protected val apiService: StackExchangeApiService,
     val name: String,
     val site: SiteMetadata,
     interval: Duration,
@@ -71,7 +80,20 @@ abstract class QuestionController(
     }
 
     internal abstract suspend fun queryQuestions(): List<Question>
+
+    fun getTagWikiExcerpt(tag: String): String? {
+        return tagCache.get(TagCacheKey(site.apiParameter, tag)) {
+            runBlocking { Optional.ofNullable(apiService.getTagInfo(site.apiParameter, tag).singleOrNull()) }
+        }.getOrNull()?.excerpt
+    }
+
+    companion object {
+        private val tagCache: Cache<TagCacheKey, Optional<TagWiki>> = CacheBuilder.newBuilder()
+            .expireAfterAccess(8, TimeUnit.HOURS)
+            .build()
+    }
 }
+private data class TagCacheKey(val site: String, val tag: String)
 
 fun Iterable<String>.anyIgnored(ignoredTags: Collection<String>) = any { tag ->
     ignoredTags.any { ignored -> tag.startsWith(ignored) }

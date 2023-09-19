@@ -23,7 +23,7 @@ import kotlin.time.toJavaDuration
 private val log = logger {}
 
 class RecentQuestionController(
-    private val apiService: StackExchangeApiService,
+    apiService: StackExchangeApiService,
     websocketService: StackExchangeWebsocketService,
     initialWatchedTags: Collection<String> = emptyList(),
     initialIgnoredTags: Collection<String> = emptyList(),
@@ -31,7 +31,7 @@ class RecentQuestionController(
     private val limit: Int = 80,
     private val queryByTagWindow: Duration = 14.days,
     queryByTagInterval: Duration = 15.minutes,
-): QuestionController("Recent", site, 1.minutes) {
+): QuestionController(apiService, "Recent", site, 1.minutes) {
     val watchedTags = initialWatchedTags.toMutableStateList()
     val ignoredTags = initialIgnoredTags.toMutableStateList()
     private val newQuestionIds = mutableStateListOf<Long>()

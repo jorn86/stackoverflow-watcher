@@ -1,5 +1,8 @@
 package org.hertsig.stackoverflow.ui
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.TooltipArea
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -12,6 +15,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.QuestionAnswer
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -19,10 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import org.hertsig.compose.component.SpacedColumn
-import org.hertsig.compose.component.SpacedRow
-import org.hertsig.compose.component.TextLine
-import org.hertsig.compose.component.TooltipText
+import org.hertsig.compose.component.*
 import org.hertsig.stackoverflow.controller.QuestionController
 import org.hertsig.stackoverflow.dto.api.Question
 import java.awt.Desktop
@@ -34,7 +36,8 @@ private val desktop = if (Desktop.isDesktopSupported()) Desktop.getDesktop() els
 
 @Composable
 fun Question(controller: QuestionController, question: Question) {
-    SpacedRow(Modifier.alpha(if (controller.fade(question)) .6f else 1f)
+    val alpha by animateFloatAsState(if (controller.fade(question)) .6f else 1f)
+    SpacedRow(Modifier.alpha(alpha)
         .clickable {
             controller.removeNew(question.questionId)
             desktop?.browse(URI(question.link))
@@ -73,7 +76,7 @@ fun Question(controller: QuestionController, question: Question) {
                     TextLine(question.commentCount.toString())
                     Icon(Icons.Default.Comment, "comments")
                 }
-                question.tags.forEach { Tag(it) }
+                question.tags.forEach { Tag(controller, it) }
                 Spacer(Modifier.weight(1f))
                 if (controller.isNew(question.questionId)) {
                     Icon(Icons.Default.FiberNew, "new")
@@ -82,7 +85,7 @@ fun Question(controller: QuestionController, question: Question) {
                     val bountyDate = resolveLocal(question.bountyClosesDate, ZoneId.systemDefault())
                         .format(DATETIME_PATTERN)
                     TooltipText("until $bountyDate") {
-                        Tag("+${question.bountyAmount}", Modifier.width(60.dp))
+                        TagText("+${question.bountyAmount}", Modifier.width(60.dp))
                     }
                 }
                 if (question.viewCount > 0) {
@@ -100,9 +103,23 @@ fun Question(controller: QuestionController, question: Question) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun Tag(tag: String, modifier: Modifier = Modifier) {
-    Text(tag,
+private fun Tag(controller: QuestionController, tag: String, modifier: Modifier = Modifier) {
+    TooltipArea({
+        val text = remember { controller.getTagWikiExcerpt(tag).orEmpty() }
+        if (text.isNotBlank()) {
+            Text(text, tooltipModifier().widthIn(max = 800.dp))
+        }
+    }) {
+        TagText(tag, modifier)
+    }
+}
+
+@Composable
+private fun TagText(tag: String, modifier: Modifier) {
+    Text(
+        tag,
         modifier.background(MaterialTheme.colors.primaryVariant, RoundedCornerShape(4.dp)).padding(4.dp),
         textAlign = TextAlign.End,
         style = LocalTextStyle.current.copy(color = MaterialTheme.colors.onPrimary)
@@ -118,4 +135,4 @@ private val TIME_PATTERN = DateTimeFormatter.ofPattern("HH:mm")
 private val DATETIME_PATTERN = DateTimeFormatter.ofPattern("d MMMM yyyy '@' HH:mm")
 
 private val ZonedDateTime.isToday get() = toLocalDate() == LocalDate.now()
-fun ZonedDateTime.formatDateOrTime() = format(if (isToday) TIME_PATTERN else DATE_PATTERN)
+fun ZonedDateTime.formatDateOrTime(): String = format(if (isToday) TIME_PATTERN else DATE_PATTERN)
