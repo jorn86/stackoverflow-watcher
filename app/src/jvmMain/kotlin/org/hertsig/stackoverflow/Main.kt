@@ -7,7 +7,7 @@ import androidx.compose.ui.window.rememberWindowState
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.hertsig.compose.registerExceptionHandler
-import org.hertsig.core.logger
+import org.hertsig.logger.logger
 import org.hertsig.stackoverflow.service.StackExchangeApiService
 import org.hertsig.stackoverflow.service.StackExchangeWebsocketService
 import org.hertsig.stackoverflow.ui.App

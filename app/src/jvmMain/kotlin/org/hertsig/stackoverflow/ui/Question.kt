@@ -7,13 +7,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Icon
-import androidx.compose.material.LocalTextStyle
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.QuestionAnswer
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -45,13 +45,13 @@ fun Question(controller: QuestionController, question: Question) {
         16.dp, vertical = Alignment.CenterVertically
     ) {
         Row(
-            Modifier.background(MaterialTheme.colors.primary, RoundedCornerShape(16.dp)).size(40.dp),
+            Modifier.background(MaterialTheme.colorScheme.primary, RoundedCornerShape(16.dp)).size(40.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             TextLine(
                 question.score.toString(),
                 Modifier.fillMaxWidth(),
-                MaterialTheme.colors.onPrimary,
+                MaterialTheme.colorScheme.onPrimary,
                 style = LocalTextStyle.current.copy(fontWeight = FontWeight.Bold),
                 align = TextAlign.Center
             )
@@ -118,11 +118,11 @@ private fun Tag(controller: QuestionController, tag: String, modifier: Modifier 
 
 @Composable
 private fun TagText(tag: String, modifier: Modifier) {
-    Text(
+    TextLine(
         tag,
-        modifier.background(MaterialTheme.colors.primaryVariant, RoundedCornerShape(4.dp)).padding(4.dp),
-        textAlign = TextAlign.End,
-        style = LocalTextStyle.current.copy(color = MaterialTheme.colors.onPrimary)
+        modifier.background(MaterialTheme.colorScheme.secondary, RoundedCornerShape(4.dp)).padding(start = 4.dp, end = 4.dp, bottom = 4.dp),
+        align = TextAlign.End,
+        style = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSecondary)
     )
 }
 

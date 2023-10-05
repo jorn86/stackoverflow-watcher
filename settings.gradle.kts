@@ -1,4 +1,5 @@
 rootProject.name = "stackoverflow-watcher"
 
 include("app")
-include("compose-library")
+include("kotlin-library:core")
+include("kotlin-library:compose")

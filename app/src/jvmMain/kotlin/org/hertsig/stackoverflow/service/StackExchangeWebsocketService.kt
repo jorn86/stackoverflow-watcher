@@ -13,14 +13,11 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
-import org.hertsig.core.debug
-import org.hertsig.core.error
-import org.hertsig.core.info
-import org.hertsig.core.logger
+import org.hertsig.logger.logger
 import org.hertsig.stackoverflow.SiteMetadata
 import org.hertsig.stackoverflow.dto.websocket.NewQuestionMessage
 import org.hertsig.stackoverflow.dto.websocket.WebsocketMessage
-import org.hertsig.stackoverflow.util.backgroundTask
+import org.hertsig.util.backgroundTask
 import java.time.Instant
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
@@ -55,12 +52,12 @@ class StackExchangeWebsocketService(
             cleanupWebsocket(socket)
         }
         socket.launch {
-            backgroundTask("Websocket ping", 1.minutes, false) {
-                if (lastContact.isBefore(Instant.now().minusSeconds(55))) {
+            backgroundTask("Websocket ping", 2.minutes, false) {
+                if (lastContact.isBefore(Instant.now().minusSeconds(119))) {
                     log.debug("Sending ping")
                     socket.send(Frame.Text("ping"))
-                    delay(5.seconds)
-                    if (lastContact.isBefore(Instant.now().minusSeconds(6))) {
+                    delay(15.seconds)
+                    if (lastContact.isBefore(Instant.now().minusSeconds(16))) {
                         error("Ping did not receive pong response") // throwing stops background task
                     }
                 }

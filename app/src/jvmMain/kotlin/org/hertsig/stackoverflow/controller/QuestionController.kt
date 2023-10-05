@@ -10,15 +10,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import org.hertsig.core.info
-import org.hertsig.core.logger
-import org.hertsig.core.trace
-import org.hertsig.core.warn
+import org.hertsig.logger.logger
 import org.hertsig.stackoverflow.SiteMetadata
 import org.hertsig.stackoverflow.dto.api.Question
 import org.hertsig.stackoverflow.dto.api.TagWiki
 import org.hertsig.stackoverflow.service.StackExchangeApiService
-import org.hertsig.stackoverflow.util.backgroundTask
+import org.hertsig.util.backgroundTask
 import java.net.URL
 import java.time.Instant
 import java.util.*

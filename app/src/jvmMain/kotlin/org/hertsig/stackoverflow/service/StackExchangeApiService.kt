@@ -10,7 +10,7 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNamingStrategy
-import org.hertsig.core.*
+import org.hertsig.logger.logger
 import org.hertsig.stackoverflow.dto.api.*
 import java.time.Instant
 

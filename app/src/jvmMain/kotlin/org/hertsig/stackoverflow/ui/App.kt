@@ -4,15 +4,11 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.Icon
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Switch
-import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -54,21 +50,24 @@ fun App(apiService: StackExchangeApiService, websocketService: StackExchangeWebs
         }
     }
 
-    val views = controllers.map { TabBuilder({ TabTitle(it) }) { QuestionsView(it) } }
     var dark by remember { mutableStateOf(true) }
     StackOverflowTheme(dark) {
-        Column(Modifier.background(MaterialTheme.colors.surface)) {
-            TopAppBar {
-                TextLine(APP_NAME, Modifier.padding(start = 8.dp), Color.White)
-                Spacer(Modifier.weight(1f))
+        val views = controllers.map { TabBuilder({ TabTitle(it) }) { QuestionsView(it) } }
+        Column(Modifier.background(MaterialTheme.colorScheme.surface)) {
+            @OptIn(ExperimentalMaterial3Api::class)
+            TopAppBar({
+                TextLine(APP_NAME, Modifier.padding(start = 8.dp))
+            }, actions = {
                 if (websocketService.connectionError) {
                     TooltipText("Websocket has disconnected. Restart the app to restore instant addition of new questions") {
-                        Icon(Icons.Default.Warning, "disconnected",
-                            Modifier.padding(end = 4.dp), Color.Yellow)
+                        Icon(
+                            Icons.Default.Warning, "disconnected",
+                            Modifier.padding(end = 4.dp), Color.Yellow
+                        )
                     }
                 }
                 Switch(dark, { dark = it })
-            }
+            })
             if (views.isEmpty()) {
                 LoadingIndicator()
             } else {
@@ -80,7 +79,7 @@ fun App(apiService: StackExchangeApiService, websocketService: StackExchangeWebs
 
 @Composable
 private fun TabTitle(controller: QuestionController) {
-    SpacedRow {
+    SpacedRow(Modifier.padding(vertical = 4.dp)) {
         TooltipText(controller.site.name) {
             val image = remember { controller.iconUrl.openStream().use { loadImageBitmap(it) } }
             Image(image, "site icon", Modifier.size(24.dp))

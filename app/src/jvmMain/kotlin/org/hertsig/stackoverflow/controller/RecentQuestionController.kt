@@ -3,9 +3,7 @@ package org.hertsig.stackoverflow.controller
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.toMutableStateList
 import kotlinx.coroutines.delay
-import org.hertsig.core.debug
-import org.hertsig.core.info
-import org.hertsig.core.logger
+import org.hertsig.logger.logger
 import org.hertsig.stackoverflow.SiteMetadata
 import org.hertsig.stackoverflow.dto.api.Question
 import org.hertsig.stackoverflow.dto.websocket.NewQuestionMessage
