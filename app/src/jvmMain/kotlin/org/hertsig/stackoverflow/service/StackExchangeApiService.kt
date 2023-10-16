@@ -148,7 +148,7 @@ class StackExchangeApiService(
 
     private fun handleBackoff(backoff: Int?) {
         if (backoff != null) {
-            // This doesn't really count as "handling" it but I've never seen one of these so it's probably fine.
+            // This doesn't really count as "handling" it but I've only seen one of these so it's probably fine.
             log.warn { "Got backoff request for $backoff seconds" }
         }
     }

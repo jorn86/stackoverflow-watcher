@@ -9,6 +9,6 @@ data class Config(val controllers: List<ControllerConfig>)
 data class ControllerConfig(
     val siteId: Int,
     val type: String,
-    val tags: Set<String>,
-    val ignoredTags: Set<String>,
+    val tags: Set<String> = emptySet(),
+    val ignoredTags: Set<String> = emptySet(),
 )

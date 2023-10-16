@@ -1,7 +1,6 @@
 package org.hertsig.stackoverflow.controller
 
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onGloballyPositioned
 import com.google.common.cache.Cache
@@ -34,6 +33,7 @@ abstract class QuestionController(
     interval: Duration,
     private var lastPollTime: Instant = Instant.EPOCH
 ) {
+    var loading by mutableStateOf(true); private set
     protected val questions = MutableStateFlow(emptyList<Question>())
     private val interval = interval.toJavaDuration()
     private val pollMutex = Mutex()
@@ -73,6 +73,7 @@ abstract class QuestionController(
             val questions = queryQuestions()
             log.info { "$debugName polled ${questions.size} questions" }
             this.questions.emit(questions)
+            loading = false
         }
     }
 

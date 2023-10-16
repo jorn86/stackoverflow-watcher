@@ -18,6 +18,6 @@ class BountyController(
 
     override suspend fun queryQuestions() = apiService
         .getQuestionsWithBounty(site.apiParameter)
-        .filter { it.tags.any(watchedTags::contains) }
+        .filter { watchedTags.isEmpty() || it.tags.any(watchedTags::contains) }
         .sortedByDescending { it.bountyClosesDate }
 }

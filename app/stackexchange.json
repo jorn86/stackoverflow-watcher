@@ -17,14 +17,16 @@
     {
       "site_id": 196,
       "type": "recent",
-      "tags": ["kotlin"],
-      "ignored_tags": []
+      "tags": ["kotlin"]
     },
     {
       "site_id": 122,
       "type": "recent",
-      "tags": ["dnd-5e"],
-      "ignored_tags": []
+      "tags": ["dnd-5e"]
+    },
+    {
+      "site_id": 122,
+      "type": "bounty"
     }
   ]
 }
