@@ -3,9 +3,15 @@
     {
       "site_id": 1,
       "type": "recent",
-      "tags": ["java", "kotlin", "jooq", "guava", "guice", "jersey", "compose-desktop"],
+      "tags": ["java", "jooq", "guava", "guice", "jersey"],
       "ignored_tags": ["apache-poi", "flutter", "hibernate", "javafx", "javascript", "jpa",
         "minecraft", "pdf", "python", "react", "selenium", "swing"]
+    },
+    {
+      "site_id": 1,
+      "type": "recent",
+      "tags": ["kotlin", "compose-desktop"],
+      "ignored_tags": ["android"]
     },
     {
       "site_id": 1,

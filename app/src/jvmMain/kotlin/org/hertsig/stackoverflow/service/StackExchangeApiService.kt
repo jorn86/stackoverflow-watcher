@@ -39,7 +39,7 @@ class StackExchangeApiService(
             parameter("pagesize", limit)
         }
         val (questions) = parseResponse<Question>(response)
-        return questions
+        return questions.filterValid()
     }
 
     suspend fun getQuestions(ids: Set<Long>, limit: Int = 50, site: String = defaultSite): List<Question> {
@@ -52,7 +52,7 @@ class StackExchangeApiService(
             parameter("pagesize", limit)
         }
         val (questions) = parseResponse<Question>(response)
-        return questions
+        return questions.filterValid()
     }
 
     suspend fun getQuestionsWithBounty(site: String = defaultSite, pageSize: Int = 100): List<Question> {
@@ -62,7 +62,7 @@ class StackExchangeApiService(
             val (elements, more) = getQuestionsWithBounty(site, page++, pageSize)
             result.addAll(elements)
         } while (more)
-        return result
+        return result.filterValid()
     }
 
     private suspend fun getQuestionsWithBounty(site: String, page: Int = 0, pageSize: Int = 100): Pair<List<Question>, Boolean> {
@@ -73,6 +73,14 @@ class StackExchangeApiService(
             parameter("page", page)
         }
         return parseResponse<Question>(response)
+    }
+
+    // This shouldn't be possible according to the docs, but we sometimes get responses that are missing fields:
+    // [title, score, answerCount, viewCount, tags]
+    private fun List<Question>.filterValid() = filter {
+        it.title.isNotBlank().also { valid ->
+            if (!valid) log.warn { "Got question with empty title: $it" }
+        }
     }
 
     suspend fun getTagInfo(site: String, vararg tags: String): List<TagWiki> {
@@ -127,7 +135,7 @@ class StackExchangeApiService(
                 val error = try {
                     json.decodeFromString<ApiError>(text)
                 } catch (e: Exception) {
-                    log.error("Error parsing error response", e)
+                    log.error("Error parsing error response from $text", e)
                     null
                 }
                 handleBackoff(error?.backoff)
@@ -136,7 +144,12 @@ class StackExchangeApiService(
         }
 
         log.trace { "Decoding API response: $text" }
-        val responseData = json.decodeFromString<ApiResponse<T>>(text)
+        val responseData = try {
+            json.decodeFromString<ApiResponse<T>>(text)
+        } catch (e: Exception) {
+            log.error("Error parsing error response from $text", e)
+            return emptyList<T>() to false
+        }
         if (responseData.quotaRemaining < responseData.quotaMax / 2) {
             log.warn { "Quota remaining low: ${responseData.quotaRemaining}/${responseData.quotaMax}" }
         } else {
