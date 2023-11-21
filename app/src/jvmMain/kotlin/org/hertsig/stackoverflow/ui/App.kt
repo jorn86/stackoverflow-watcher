@@ -14,9 +14,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.loadImageBitmap
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.decodeFromStream
 import org.hertsig.compose.component.*
+import org.hertsig.logger.logger
 import org.hertsig.stackoverflow.APP_NAME
 import org.hertsig.stackoverflow.SiteList
 import org.hertsig.stackoverflow.controller.BountyController
@@ -27,6 +29,9 @@ import org.hertsig.stackoverflow.service.StackExchangeApiService
 import org.hertsig.stackoverflow.service.StackExchangeWebsocketService
 import org.hertsig.stackoverflow.service.defaultJson
 import java.io.FileInputStream
+import kotlin.time.Duration.Companion.milliseconds
+
+private val log = logger {}
 
 @Composable
 fun App(apiService: StackExchangeApiService, websocketService: StackExchangeWebsocketService) {
@@ -45,6 +50,11 @@ fun App(apiService: StackExchangeApiService, websocketService: StackExchangeWebs
                 else -> error("Unknown type ${controllerConfig.type}")
             }
         })
+
+        while (!websocketService.hasActiveWebsocket()) {
+            log.warn("Waiting for websocket to connect")
+            delay(100.milliseconds)
+        }
         controllers.filterIsInstance<RecentQuestionController>().forEach {
             it.watchedTags.forEach { tag -> websocketService.addWatchedTag(it.site, tag) }
         }

@@ -27,7 +27,7 @@ class RecentQuestionController(
     initialIgnoredTags: Collection<String> = emptyList(),
     site: SiteMetadata,
     private val limit: Int = 80,
-    private val queryByTagWindow: Duration = 14.days,
+    private val queryByTagWindow: Duration = 90.days,
     queryByTagInterval: Duration = 15.minutes,
 ): QuestionController(apiService, "Recent", site, 1.minutes) {
     val watchedTags = initialWatchedTags.toMutableStateList()
